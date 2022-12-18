@@ -69,3 +69,8 @@ $ sls deploy --aws-profile {your-profile}
   - im:history
 - Event Subscriptions
   - app_mention
+
+
+初回 event 連携の際にはチャレンジ認証を通さないといけないので handler のコメントアウトを解除して  
+challenge パラメータを返して認証する必要がある。  
+一度通せば以降はコメントアウトで問題ない。  
