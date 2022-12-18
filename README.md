@@ -1,3 +1,5 @@
+fork from [[kufu/smarthr-textlint-bot](https://github.com/kufu/smarthr-textlint-bot)
+
 # smarthr-textlint-bot
 
 [textlint の SmartHR 用ルールプリセット](https://github.com/kufu/textlint-rule-preset-smarthr)を使って、Slack 上から文書の`lint`と`fix`を行える bot です。
