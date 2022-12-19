@@ -74,6 +74,10 @@ app.event('app_mention', async ({ event, context }) => {
     const replaceText = event.text.replace(regex, '')
     const fixResults = await engine.executeOnText(replaceText)
 
+    console.log(fixResults[0].output)
+    console.log('****************')
+    console.log(formatResults(fixResults))
+
     if (replaceText.length === 0) {
       blocks.push({
         type: 'section',
@@ -108,24 +112,36 @@ app.event('app_mention', async ({ event, context }) => {
       })
     }
 
-   app.client.chat.postMessage({
-      token: context.botToken,
-      channel: event.channel,
-      thread_ts: event.ts,
-      text: '',
-      blocks: [
-        ...blocks,
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: '※<https://github.com/kufu/textlint-rule-preset-smarthr|textlintのSmartHR用ルールプリセット>を使ってチェック・自動修正の提案をしています。',
-            },
-          ],
-        },
-      ],
-    })
+    const asyncInForLoop = async () => {
+      console.log('start')
+      for (let i = 0; i < blocks.length; i++) {
+        await app.client.chat.postMessage({
+          token: context.botToken,
+          channel: event.channel,
+          thread_ts: event.ts,
+          text: '',
+          blocks: [blocks[i]],
+        })
+      }
+    }
+    asyncInForLoop()
+    // app.client.chat.postMessage({
+    //   token: context.botToken,
+    //   channel: event.channel,
+    //   thread_ts: event.ts,
+    //   text: '',
+    //   blocks: [
+    //     {
+    //       type: 'context',
+    //       elements: [
+    //         {
+    //           type: 'mrkdwn',
+    //           text: '※<https://github.com/kufu/textlint-rule-preset-smarthr|textlintのSmartHR用ルールプリセット>を使ってチェック・自動修正の提案をしています。',
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // })
   } catch (error) {
     throw console.log(error)
   }
