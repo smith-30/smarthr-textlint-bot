@@ -48,34 +48,37 @@ const engine = new TextFixEngine({
 // メンション（@textlint）をトリガーとしたイベント実行
 /* @ts-ignore */
 app.event('app_mention', async ({ event, context }) => {
+  console.log("textLen: ", event.text.length)
   // api response の payload が 3000 文字までのため
-  if (2000 < event.text.length) {
-    await app.client.chat.postMessage({
-      token: context.botToken,
-      channel: event.channel,
-      thread_ts: event.ts,
-      text: '',
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: '2000文字程度におさめて実行してください。。！',
-          },
-        },
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
-            },
-          ],
-        },
-      ],
-    })
-    return
-  }
+  // The text for the block, in the form of a text object. Minimum length for the text in this field is 1 and maximum length is 3000 characters.
+  // This field is not required if a valid array of fields objects is provided instead.
+  // if (3000 < event.text.length) {
+  //   await app.client.chat.postMessage({
+  //     token: context.botToken,
+  //     channel: event.channel,
+  //     thread_ts: event.ts,
+  //     text: '',
+  //     blocks: [
+  //       {
+  //         type: 'section',
+  //         text: {
+  //           type: 'mrkdwn',
+  //           text: '2000文字程度におさめて実行してください。。！',
+  //         },
+  //       },
+  //       {
+  //         type: 'context',
+  //         elements: [
+  //           {
+  //             type: 'mrkdwn',
+  //             text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+  //           },
+  //         ],
+  //       },
+  //     ],
+  //   })
+  //   return
+  // }
 
   let blocks: Blocks = [
     {
@@ -137,16 +140,14 @@ app.event('app_mention', async ({ event, context }) => {
       for (let i = 0; i < blocks.length; i++) {
         try {
           // Call chat.postMessage with the built-in client
-          const result = await app.client.chat.postMessage({
+          await app.client.chat.postMessage({
             token: context.botToken,
             channel: event.channel,
             thread_ts: event.ts,
             text: '',
             blocks: [blocks[i]],
           })
-          console.log(result);
-        }
-        catch (error) {
+        } catch (error) {
           console.log("err", error)
           await app.client.chat.postMessage({
             token: context.botToken,
@@ -177,24 +178,7 @@ app.event('app_mention', async ({ event, context }) => {
       }
     }
 
-    asyncInForLoop()
-    // app.client.chat.postMessage({
-    //   token: context.botToken,
-    //   channel: event.channel,
-    //   thread_ts: event.ts,
-    //   text: '',
-    //   blocks: [
-    //     {
-    //       type: 'context',
-    //       elements: [
-    //         {
-    //           type: 'mrkdwn',
-    //           text: '※<https://github.com/kufu/textlint-rule-preset-smarthr|textlintのSmartHR用ルールプリセット>を使ってチェック・自動修正の提案をしています。',
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // })
+    await asyncInForLoop()
   } catch (error) {
     console.log(error)
     throw error
