@@ -48,6 +48,34 @@ const engine = new TextFixEngine({
 // メンション（@textlint）をトリガーとしたイベント実行
 /* @ts-ignore */
 app.event('app_mention', async ({ event, context }) => {
+  // api response の payload が 3000 文字までのため
+  if (2000 < event.text.length) {
+    await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: event.channel,
+      thread_ts: event.ts,
+      text: '',
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '2000文字程度におさめて実行してください。。！',
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+            },
+          ],
+        },
+      ],
+    })
+    return
+  }
 
   let blocks: Blocks = [
     {
@@ -56,9 +84,6 @@ app.event('app_mention', async ({ event, context }) => {
         type: 'mrkdwn',
         text: '文書チェックが完了しました:tada:',
       },
-    },
-    {
-      type: 'divider',
     },
     {
       type: 'section',
@@ -73,10 +98,6 @@ app.event('app_mention', async ({ event, context }) => {
     const regex = /^<@(.+?)>/g // memo: 最初の@textlintを除外する正規表現 https://www-creators.com/tool/regex-checker?r=%5E%3C%40(.%2B%3F)%3E
     const replaceText = event.text.replace(regex, '')
     const fixResults = await engine.executeOnText(replaceText)
-
-    console.log(fixResults[0].output)
-    console.log('****************')
-    console.log(formatResults(fixResults))
 
     if (replaceText.length === 0) {
       blocks.push({
@@ -113,17 +134,49 @@ app.event('app_mention', async ({ event, context }) => {
     }
 
     const asyncInForLoop = async () => {
-      console.log('start')
       for (let i = 0; i < blocks.length; i++) {
-        await app.client.chat.postMessage({
-          token: context.botToken,
-          channel: event.channel,
-          thread_ts: event.ts,
-          text: '',
-          blocks: [blocks[i]],
-        })
+        try {
+          // Call chat.postMessage with the built-in client
+          const result = await app.client.chat.postMessage({
+            token: context.botToken,
+            channel: event.channel,
+            thread_ts: event.ts,
+            text: '',
+            blocks: [blocks[i]],
+          })
+          console.log(result);
+        }
+        catch (error) {
+          console.log("err", error)
+          await app.client.chat.postMessage({
+            token: context.botToken,
+            channel: event.channel,
+            thread_ts: event.ts,
+            text: '',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: '文章が長すぎるかもしれません。。2000文字程度におさめて実行してください。。！',
+                },
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+                  },
+                ],
+              },
+            ],
+          })
+          throw error
+        }
       }
     }
+
     asyncInForLoop()
     // app.client.chat.postMessage({
     //   token: context.botToken,
@@ -143,6 +196,9 @@ app.event('app_mention', async ({ event, context }) => {
     //   ],
     // })
   } catch (error) {
-    throw console.log(error)
+    console.log(error)
+    throw error
   }
 })
+
+//https://github.com/techtouch-inc/techblog-textlint#setup
