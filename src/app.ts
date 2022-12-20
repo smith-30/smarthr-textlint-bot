@@ -108,7 +108,7 @@ app.event('app_mention', async ({ event, context }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: '*文書のチェック結果:↓↓↓*(スペース埋め込みなどは修正文書に反映されてます！)',
+        text: '*文書のチェック結果:↓↓↓* (スペース埋め込みなどは修正文書に反映されてます！)',
       },
     },
   ]
@@ -134,7 +134,7 @@ app.event('app_mention', async ({ event, context }) => {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: '*自動修正文書の提案:↓↓↓*(下記内容やチェック結果を吟味してブログに反映してください！)',
+            text: '*自動修正文書の提案:↓↓↓* (下記内容やチェック結果を吟味してブログに反映してください！)',
           },
         },
         {
