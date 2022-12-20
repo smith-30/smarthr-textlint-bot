@@ -52,33 +52,49 @@ app.event('app_mention', async ({ event, context }) => {
   // api response の payload が 3000 文字までのため
   // The text for the block, in the form of a text object. Minimum length for the text in this field is 1 and maximum length is 3000 characters.
   // This field is not required if a valid array of fields objects is provided instead.
-  // if (3000 < event.text.length) {
-  //   await app.client.chat.postMessage({
-  //     token: context.botToken,
-  //     channel: event.channel,
-  //     thread_ts: event.ts,
-  //     text: '',
-  //     blocks: [
-  //       {
-  //         type: 'section',
-  //         text: {
-  //           type: 'mrkdwn',
-  //           text: '2000文字程度におさめて実行してください。。！',
-  //         },
-  //       },
-  //       {
-  //         type: 'context',
-  //         elements: [
-  //           {
-  //             type: 'mrkdwn',
-  //             text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
-  //           },
-  //         ],
-  //       },
-  //     ],
-  //   })
-  //   return
-  // }
+  if (6000 < event.text.length) {
+    await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: event.channel,
+      thread_ts: event.ts,
+      text: '',
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '文章が長すぎるため分割して送ってください。。！',
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+            },
+          ],
+        },
+      ],
+    })
+    return
+  }
+
+  await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: event.channel,
+    thread_ts: event.ts,
+    text: '',
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '文章を受け付けました！5 - 10秒ほどで結果がでます！',
+        },
+      },
+    ],
+  })
 
   let blocks: Blocks = [
     {
