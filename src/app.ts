@@ -108,7 +108,7 @@ app.event('app_mention', async ({ event, context }) => {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: '*文書のチェック結果:*',
+        text: '*文書のチェック結果:↓↓↓*(スペース埋め込みなどは修正文書に反映されてます！)',
       },
     },
   ]
@@ -134,7 +134,7 @@ app.event('app_mention', async ({ event, context }) => {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: '*自動修正文書の提案:*',
+            text: '*自動修正文書の提案:↓↓↓*(下記内容やチェック結果を吟味してブログに反映してください！)',
           },
         },
         {
@@ -175,7 +175,7 @@ app.event('app_mention', async ({ event, context }) => {
                 type: 'section',
                 text: {
                   type: 'mrkdwn',
-                  text: '文章が長すぎるかもしれません。。2000文字程度におさめて実行してください。。！',
+                  text: '文章が長すぎるか、修正点が多すぎるかもしれません。。2000文字程度で実行してみてください。。！',
                 },
               },
               {
