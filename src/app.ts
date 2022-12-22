@@ -1,18 +1,44 @@
-import { App, LogLevel, KnownBlock, Block } from '@slack/bolt'
+import { App, LogLevel, KnownBlock, Block, AwsLambdaReceiver } from '@slack/bolt'
 import { TextFixEngine } from 'textlint'
 import * as path from 'path'
-require('dotenv').config()
+// require('dotenv').config()
 
 import formatResults from './utils/formatResults'
 
 type Blocks = (KnownBlock | Block)[]
 
+const secret: string = process.env.SLACK_SIGNING_SECRET as string
+
+const awsLambdaReceiver = new AwsLambdaReceiver({
+  signingSecret: secret,
+})
+
 // アプリの初期化
 const app = new App({
   logLevel: LogLevel.DEBUG,
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  receiver: awsLambdaReceiver,
 })
+
+/* @ts-ignore */
+module.exports.handler = async (event, context, callback) => {
+  // console.log(event.body)
+  // console.log(event.headers)
+  // const obj = JSON.parse(event.body);
+  // if (obj.challenge) {
+  //     return {
+  //       statusCode: 200,
+  //       body: JSON.stringify({
+  //         challenge: obj.challenge,
+  //       }),
+  //   }
+  // }
+  if (event.headers['X-Slack-Retry-Num']) {
+    return { statusCode: 200, body: JSON.stringify({ message: 'No need to resend' }) }
+  }
+  const handler = await awsLambdaReceiver.start()
+  return handler(event, context, callback)
+}
 
 // textlintの初期化
 const engine = new TextFixEngine({
@@ -20,7 +46,56 @@ const engine = new TextFixEngine({
 })
 
 // メンション（@textlint）をトリガーとしたイベント実行
+/* @ts-ignore */
 app.event('app_mention', async ({ event, context }) => {
+  console.log("textLen: ", event.text.length)
+  // api response の payload が 3000 文字までのため
+  // The text for the block, in the form of a text object. Minimum length for the text in this field is 1 and maximum length is 3000 characters.
+  // This field is not required if a valid array of fields objects is provided instead.
+  if (6000 < event.text.length) {
+    await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: event.channel,
+      thread_ts: event.ts,
+      text: '',
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '文章が長すぎるため分割して送ってください。。！',
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+            },
+          ],
+        },
+      ],
+    })
+    return
+  }
+
+  await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: event.channel,
+    thread_ts: event.ts,
+    text: '',
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '文章を受け付けました！5 - 10秒ほどで結果がでます！',
+        },
+      },
+    ],
+  })
+
   let blocks: Blocks = [
     {
       type: 'section',
@@ -30,13 +105,10 @@ app.event('app_mention', async ({ event, context }) => {
       },
     },
     {
-      type: 'divider',
-    },
-    {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: '*文書のチェック結果:*',
+        text: '*文書のチェック結果:↓↓↓* (スペース埋め込みなどは修正文書に反映されてます！)',
       },
     },
   ]
@@ -62,7 +134,7 @@ app.event('app_mention', async ({ event, context }) => {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: '*自動修正文書の提案:*',
+            text: '*自動修正文書の提案:↓↓↓* (下記内容やチェック結果を吟味してブログに反映してください！)',
           },
         },
         {
@@ -80,30 +152,53 @@ app.event('app_mention', async ({ event, context }) => {
       })
     }
 
-    app.client.chat.postMessage({
-      token: context.botToken,
-      channel: event.channel,
-      thread_ts: event.ts,
-      text: '',
-      blocks: [
-        ...blocks,
-        {
-          type: 'context',
-          elements: [
-            {
-              type: 'mrkdwn',
-              text: '※<https://github.com/kufu/textlint-rule-preset-smarthr|textlintのSmartHR用ルールプリセット>を使ってチェック・自動修正の提案をしています。',
-            },
-          ],
-        },
-      ],
-    })
+    const asyncInForLoop = async () => {
+      for (let i = 0; i < blocks.length; i++) {
+        try {
+          // Call chat.postMessage with the built-in client
+          await app.client.chat.postMessage({
+            token: context.botToken,
+            channel: event.channel,
+            thread_ts: event.ts,
+            text: '',
+            blocks: [blocks[i]],
+          })
+        } catch (error) {
+          console.log("err", error)
+          await app.client.chat.postMessage({
+            token: context.botToken,
+            channel: event.channel,
+            thread_ts: event.ts,
+            text: '',
+            blocks: [
+              {
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: '文章が長すぎるか、修正点が多すぎるかもしれません。。2000文字程度で実行してみてください。。！',
+                },
+              },
+              {
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: '※<https://github.com/techtouch-inc/techblog-textlint#setup|こちらのリポジトリ>をセットアップすれば一括置換が可能です。',
+                  },
+                ],
+              },
+            ],
+          })
+          throw error
+        }
+      }
+    }
+
+    await asyncInForLoop()
   } catch (error) {
-    throw console.log(error)
+    console.log(error)
+    throw error
   }
 })
-;(async () => {
-  // Start your app
-  await app.start(Number(process.env.PORT) || 3000)
-  console.log('⚡️ Bolt app is running!')
-})()
+
+//https://github.com/techtouch-inc/techblog-textlint#setup
